@@ -51,19 +51,39 @@ const mxReqLog = requests.map((req, index) => {
         for (const key in params.params) {
             reqContextGuids.push(params.params[key].guid);
         }
-        /** 
-         * @TODO in this test case there are two matching refreshes and it's showing the first one always.
+        /**
+         * @TODO - there's a bug here where downstream calls are being tied to the wrong refresh.. need to think about this one.
+         * - how do we tell which to tie it to? Maybe from the model sdk?
+         * 
+         * e.g. this request is counted for ROW and not for QUESTIONMAIN
+         * "request": {
+                "action": "retrieve",
+                "params": {
+                    "queryId": "yaxM3R8iZU2mJFD91lgTfw",
+                    "params": {
+                        "QuestionMain": {
+                            "guid": "75435293790178333"
+                        },
+                        "Row": {
+                            "guid": "74027919018446481"
+                        }
+                    },
+                    "options": {}
+                },
+                "queryId": "yaxM3R8iZU2mJFD91lgTfw"
+            },
+            "analysis": {
+                "id": 20,
+                "action": "retrieve",
+                "queryId": "yaxM3R8iZU2mJFD91lgTfw",
+                "source": "TBD",
+                "trigger": {
+                    "id": 0,
+                    "entity": "MatrixModule.Row"
+                }
+            }
          */
-
-        /**reqContextGuids []
-         * vs
-         * refresh
-         *      id
-         *      entities []
-         *      guids []
-         */
-        
-        matchingRefresh = refreshes.find(refresh => {
+        matchingRefresh = refreshes.findLast(refresh => {
             return refresh.guids.find((g, index) => {
                 return reqContextGuids.find(rcg => {
                     if (g.substring(0, 5) === rcg.substring(0, 5)) {
@@ -93,40 +113,48 @@ const mxReqLog = requests.map((req, index) => {
 const entityRefreshes = [];
 refreshes.forEach(refresh => {
     refresh.entities.forEach(entity => {
+        const downstreamCalls = mxReqLog.filter(req => {
+            return req.analysis.trigger && req.analysis.trigger.id === refresh.id
+                && req.analysis.trigger.entity === entity 
+        }).map(dsc => dsc.analysis.queryId);
+        const downstreamCallsMap = downstreamCalls.reduce((total, current) => {
+            // console.log(total);
+            const existing = total.find(item => item.id === current)
+            if (existing){
+                existing.count += 1
+            } else {
+                total.push({
+                    id: current,
+                    count: 1
+                })
+            }
+            return total;
+        }, []);
         entityRefreshes.push({
             requestId: refresh.id,
             entity: entity,
-            downStreamCallsCount: mxReqLog.filter(req => {
-                return req.analysis.trigger && req.analysis.trigger.id === refresh.id
-                    && req.analysis.trigger.entity === entity 
-            }).length
+            downStreamCallsCount: downstreamCalls.length,
+            // downstreamCalls: downstreamCalls,
+            downstreamCalls: downstreamCallsMap
+
         })
     })
 })
-console.log(entityRefreshes);
+// console.log(entityRefreshes);
 const analysis = {
     refreshes: entityRefreshes
-    // [
-    //     {
-    //         requestId: 0,
-    //         entity: 0,
-    //         downstreamCallsCount: 0
-    //     }
-    // ]
 }
-// mxReqLog.summary = analysis;
-// console.log(refreshes);
-// console.log(mxReqLog);
 fs.writeFileSync('./out.json', JSON.stringify({
     summary: analysis,
     data: mxReqLog
 }));
 
 
+
+console.log(mxReqLog.filter(req => !req.analysis.trigger))
+console.log(mxReqLog.filter(req => !req.analysis.trigger).length)
 /**
- * @todo ideally it would show PER REFRESHED ENTITY, the number of subsequent calls that are triggered.
- * i.e.     Answer - 0
- *          Row - 42
- *          QuestionMain - 64
- *          Section - 1
- */
+ * i have a mysetery query: nRpEXDoBMUaf2RMl3xb1pg
+ * - seems to be the result of a refreshed SubSection, but there's no instructions to do so..
+ * 
+ *  */ 
