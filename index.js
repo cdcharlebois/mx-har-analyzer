@@ -71,6 +71,15 @@ const mxReqLog = requests.map((req, index) => {
     }
     return ret;
 })
-console.log(refreshes);
+// console.log(refreshes);
 // console.log(mxReqLog);
 fs.writeFileSync('./out.json', JSON.stringify(mxReqLog));
+
+
+/**
+ * @todo ideally it would show PER REFRESHED ENTITY, the number of subsequent calls that are triggered.
+ * i.e.     Answer - 0
+ *          Row - 42
+ *          QuestionMain - 64
+ *          Section - 1
+ */
