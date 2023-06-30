@@ -45,11 +45,19 @@ const mxReqLog = requests.map((req, index) => {
         objects: objects.map(fullObj => ({ guid: fullObj.guid, objectType: fullObj.objectType }))
     }
     let matchingRefresh;
-    if (action === "retrieve" && params.params.CurrentObject){
-        const reqContextGuid = params.params.CurrentObject.guid;
+    if (action === "retrieve"){
+        const reqContextGuids = []
+        for (const key in params.params) {
+            reqContextGuids.push(params.params[key].guid);
+        }
+        /** 
+         * @TODO in this test case there are two matching refreshes and it's showing the first one always.
+         */
         matchingRefresh = refreshes.find(refresh => {
             return refresh.guids.find(g => {
-                return g.substring(0,5) === reqContextGuid.substring(0,5)
+                return reqContextGuids.find(rcg => {
+                    return g.substring(0,5) === rcg.substring(0,5)
+                })
             })
         })
     }
@@ -60,8 +68,6 @@ const mxReqLog = requests.map((req, index) => {
         queryId: params.queryId,
         source: 'TBD',
         trigger: matchingRefresh ? matchingRefresh.id : undefined
-
-
     }
     return ret;
 })
