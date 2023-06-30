@@ -20,7 +20,7 @@ console.log(requests.length);
 let refreshes = [];
 const mxReqLog = requests.map((req, index) => {
     let ret = {};
-    
+
     const { text } = req.request.postData;
     const { action, params } = JSON.parse(text);
     ret.request = {
@@ -45,7 +45,8 @@ const mxReqLog = requests.map((req, index) => {
         objects: objects.map(fullObj => ({ guid: fullObj.guid, objectType: fullObj.objectType }))
     }
     let matchingRefresh;
-    if (action === "retrieve"){
+    let guidIndexMatch;
+    if (action === "retrieve") {
         const reqContextGuids = []
         for (const key in params.params) {
             reqContextGuids.push(params.params[key].guid);
@@ -53,27 +54,73 @@ const mxReqLog = requests.map((req, index) => {
         /** 
          * @TODO in this test case there are two matching refreshes and it's showing the first one always.
          */
+
+        /**reqContextGuids []
+         * vs
+         * refresh
+         *      id
+         *      entities []
+         *      guids []
+         */
+        
         matchingRefresh = refreshes.find(refresh => {
-            return refresh.guids.find(g => {
+            return refresh.guids.find((g, index) => {
                 return reqContextGuids.find(rcg => {
-                    return g.substring(0,5) === rcg.substring(0,5)
+                    if (g.substring(0, 5) === rcg.substring(0, 5)) {
+                        guidIndexMatch = index;
+                        return true;
+                    }
+                    return false;
                 })
             })
         })
     }
-    
+
     ret.analysis = {
         id: index,
         action: action,
         queryId: params.queryId,
         source: 'TBD',
-        trigger: matchingRefresh ? matchingRefresh.id : undefined
+        trigger: matchingRefresh ? {
+            id: matchingRefresh.id,
+            entity: matchingRefresh.entities[guidIndexMatch]
+        }
+            : undefined
     }
     return ret;
 })
+
+const entityRefreshes = [];
+refreshes.forEach(refresh => {
+    refresh.entities.forEach(entity => {
+        entityRefreshes.push({
+            requestId: refresh.id,
+            entity: entity,
+            downStreamCallsCount: mxReqLog.filter(req => {
+                return req.analysis.trigger && req.analysis.trigger.id === refresh.id
+                    && req.analysis.trigger.entity === entity 
+            }).length
+        })
+    })
+})
+console.log(entityRefreshes);
+const analysis = {
+    refreshes: entityRefreshes
+    // [
+    //     {
+    //         requestId: 0,
+    //         entity: 0,
+    //         downstreamCallsCount: 0
+    //     }
+    // ]
+}
+// mxReqLog.summary = analysis;
 // console.log(refreshes);
 // console.log(mxReqLog);
-fs.writeFileSync('./out.json', JSON.stringify(mxReqLog));
+fs.writeFileSync('./out.json', JSON.stringify({
+    summary: analysis,
+    data: mxReqLog
+}));
 
 
 /**
