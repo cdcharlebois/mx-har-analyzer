@@ -163,7 +163,7 @@ fs.writeFileSync('./out.json', JSON.stringify({
 }));
 
 // console.log(mxReqLog.filter(req => !req.analysis.trigger))
-console.log(mxReqLog.filter(req => !req.analysis.trigger).length)
+console.log(`${mxReqLog.filter(req => !req.analysis.trigger).length} mystery requests...`)
 /**
  * i have a mysetery query: nRpEXDoBMUaf2RMl3xb1pg
  * - seems to be the result of a refreshed SubSection, but there's no instructions to do so..
