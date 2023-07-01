@@ -1,37 +1,42 @@
 const fs = require('fs');
-// const file = 
-
-// let har;
-// fs.readFile('file', 'utf8', function (err, data) {
-//     if (err) throw err;
-//     har = JSON.parse(data);
-// });
-
 const path = process.argv[2];
 const har = require(path);
+
+/**
+ * 1. Capture all the requests from the HAR file
+ */
 const requests = har.log.entries.filter(entry => {
     return entry.request.method === "POST" && /xas\/$/.test(entry.request.url)
-})
-    .map(entry => ({
-        request: entry.request,
-        response: entry.response
-    }));
-console.log(requests.length);
+}).map(entry => ({
+    request: entry.request,
+    response: entry.response
+}));
+console.log(`Found ${requests.length} requests in the har file...`);
+
+/**
+ * 2. Map to the relevant data and capture the refresh instructions
+ */
 let refreshes = [];
 const mxReqLog = requests.map((req, index) => {
     let ret = {};
 
-    const { text } = req.request.postData;
+    // mx request
+    const text = req.request.postData.text;
     const { action, params } = JSON.parse(text);
     ret.request = {
         action, params, queryId: params.queryId,
     }
+
+
+    // mx response
     const responseText = req.response.content.text;
     const { changes, commits, instructions, objects } = JSON.parse(responseText)
+    // check to see if there are refresh instructions...
     const refreshInClient = instructions && instructions.find(instr => {
         return instr.type == "refresh_class"
     })
     if (refreshInClient) {
+        // ... if so, catalog it
         refreshes.push({
             id: index,
             entities: refreshInClient.args.classnames,
@@ -44,8 +49,11 @@ const mxReqLog = requests.map((req, index) => {
         changes, commits, instructions,
         objects: objects.map(fullObj => ({ guid: fullObj.guid, objectType: fullObj.objectType }))
     }
-    let matchingRefresh;
-    let guidIndexMatch;
+
+
+    // analyze the data
+    let matchingRefresh;    // this points to the refresh that caused this request
+    let guidIndexMatch;     // this points to guid (and therefore entity) from the refresh that caused this request
     if (action === "retrieve") {
         const reqContextGuids = []
         for (const key in params.params) {
@@ -83,6 +91,7 @@ const mxReqLog = requests.map((req, index) => {
                 }
             }
          */
+        // find last so that not all requests get linked to the first refresh
         matchingRefresh = refreshes.findLast(refresh => {
             return refresh.guids.find((g, index) => {
                 return reqContextGuids.find(rcg => {
@@ -110,17 +119,21 @@ const mxReqLog = requests.map((req, index) => {
     return ret;
 })
 
+/**
+ * flatten the refresh instructions to one per entity, so we can tell which entity refreshes
+ * are the most problematic
+ */
 const entityRefreshes = [];
 refreshes.forEach(refresh => {
     refresh.entities.forEach(entity => {
         const downstreamCalls = mxReqLog.filter(req => {
             return req.analysis.trigger && req.analysis.trigger.id === refresh.id
-                && req.analysis.trigger.entity === entity 
+                && req.analysis.trigger.entity === entity
         }).map(dsc => dsc.analysis.queryId);
         const downstreamCallsMap = downstreamCalls.reduce((total, current) => {
             // console.log(total);
             const existing = total.find(item => item.id === current)
-            if (existing){
+            if (existing) {
                 existing.count += 1
             } else {
                 total.push({
@@ -149,12 +162,10 @@ fs.writeFileSync('./out.json', JSON.stringify({
     data: mxReqLog
 }));
 
-
-
-console.log(mxReqLog.filter(req => !req.analysis.trigger))
+// console.log(mxReqLog.filter(req => !req.analysis.trigger))
 console.log(mxReqLog.filter(req => !req.analysis.trigger).length)
 /**
  * i have a mysetery query: nRpEXDoBMUaf2RMl3xb1pg
  * - seems to be the result of a refreshed SubSection, but there's no instructions to do so..
  * 
- *  */ 
+ *  */
