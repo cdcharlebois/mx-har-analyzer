@@ -1,3 +1,4 @@
 **.har.json
 out.json
 node_modules/
+.env

@@ -1,6 +1,11 @@
 const fs = require('fs');
 const path = process.argv[2];
 const har = require(path);
+const { main } = require("./modelsdk");
+// const { config } = require('dotenv');
+require("dotenv").config();
+// console.log(process.env.PAT);
+main(process.env.MENDIX_TOKEN, process.env.APP_ID);
 
 /**
  * 1. Capture all the requests from the HAR file

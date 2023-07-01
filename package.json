@@ -10,6 +10,7 @@
   "author": "Conner Charlebois",
   "license": "ISC",
   "dependencies": {
+    "dotenv": "^16.3.1",
     "mendixmodelsdk": "^4.76.0",
     "mendixplatformsdk": "^5.1.2"
   }
