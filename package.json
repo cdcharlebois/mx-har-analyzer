@@ -8,5 +8,9 @@
     "start": "node index.js"
   },
   "author": "Conner Charlebois",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "mendixmodelsdk": "^4.76.0",
+    "mendixplatformsdk": "^5.1.2"
+  }
 }
