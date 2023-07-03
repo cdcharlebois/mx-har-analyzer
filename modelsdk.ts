@@ -87,7 +87,7 @@ function getReadablePageDataElementFromStructure(
   return { name, $Type, $ID, friendlyDataSourceType, friendlyDataSourceText };
 }
 
-export async function main(token: string, appid: string, pageName: string) {
+export async function getPageDataStructure(token: string, appid: string, pageName: string) {
   // console.log("hello there");
   setPlatformConfig({
     mendixToken: token,
@@ -130,7 +130,7 @@ export async function main(token: string, appid: string, pageName: string) {
       // @ts-ignore
       pageTree[root.$ID] = leaf;
     });
-    console.dir(pageTree, { depth: null });
+    // console.dir(pageTree, { depth: null });
     // const pageTree: string[] = [];
     // console.log(pages);
     // pages[10].asLoaded().traverse(structure => {
@@ -142,11 +142,15 @@ export async function main(token: string, appid: string, pageName: string) {
     // });
     // console.log(pages[10].name);
     // console.log(pageTree);
+    model.closeConnection();
+    return pageTree;
   } else {
     console.error("no page found");
+    model.closeConnection();
+    throw new Error("no page found")
   }
 
-  model.closeConnection();
+  
 }
 
 // main().catch(console.error);

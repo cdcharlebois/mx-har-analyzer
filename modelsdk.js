@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.main = void 0;
+exports.getPageDataStructure = void 0;
 const mendixplatformsdk_1 = require("mendixplatformsdk");
 function isDataElement(structureTypeName) {
     return ["Pages$DataView", "Pages$ListView"].indexOf(structureTypeName) > -1;
@@ -65,7 +65,7 @@ function getReadablePageDataElementFromStructure(structure) {
     }
     return { name, $Type, $ID, friendlyDataSourceType, friendlyDataSourceText };
 }
-async function main(token, appid) {
+async function getPageDataStructure(token, appid, pageName) {
     // console.log("hello there");
     (0, mendixplatformsdk_1.setPlatformConfig)({
         mendixToken: token,
@@ -75,7 +75,7 @@ async function main(token, appid) {
     const workingCopy = await app.createTemporaryWorkingCopy("Release2.0");
     const model = await workingCopy.openModel();
     const page = await model.allPages().find((page) => {
-        return page.qualifiedName === "MatrixModule.Step2_Questionnaire_2";
+        return page.qualifiedName === pageName;
     });
     if (page) {
         const lpage = await page.load();
@@ -102,7 +102,7 @@ async function main(token, appid) {
             // @ts-ignore
             pageTree[root.$ID] = leaf;
         });
-        console.dir(pageTree, { depth: null });
+        // console.dir(pageTree, { depth: null });
         // const pageTree: string[] = [];
         // console.log(pages);
         // pages[10].asLoaded().traverse(structure => {
@@ -114,11 +114,14 @@ async function main(token, appid) {
         // });
         // console.log(pages[10].name);
         // console.log(pageTree);
+        model.closeConnection();
+        return pageTree;
     }
     else {
         console.error("no page found");
+        model.closeConnection();
+        throw new Error("no page found");
     }
-    model.closeConnection();
 }
-exports.main = main;
+exports.getPageDataStructure = getPageDataStructure;
 // main().catch(console.error);
