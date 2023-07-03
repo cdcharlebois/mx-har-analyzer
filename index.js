@@ -1,3 +1,7 @@
+/**
+ * @todo
+ * [ ] - extract the pages that are loaded from the HAR
+ */
 const fs = require('fs');
 const path = process.argv[2];
 const har = require(path);

@@ -1,9 +1,10 @@
 // modelsdk.ts
+/**
+ * @todo
+ * [ ] - create a function where, given a page, it returns the data element structure
+ */
 import {IStructure, domainmodels} from "mendixmodelsdk";
 import {MendixPlatformClient, setPlatformConfig} from "mendixplatformsdk";
-// import {util}
-// const util = require("util");
-// import {} from "menx"
 
 interface PageDataElement {
     name: string,
