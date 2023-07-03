@@ -1,7 +1,7 @@
 // modelsdk.ts
 /**
  * @todo
- * [ ] - create a function where, given a page, it returns the data element structure
+ * [X] - create a function where, given a page, it returns the data element structure
  */
 import { IStructure, domainmodels } from "mendixmodelsdk";
 import { MendixPlatformClient, setPlatformConfig } from "mendixplatformsdk";

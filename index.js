@@ -11,7 +11,7 @@ require("dotenv").config();
 // console.log(process.env.PAT);
 
 async function main() {
-    let tree;
+    let tree = {}
   try {
     tree = await getPageDataStructure(
       process.env.MENDIX_TOKEN,
@@ -85,9 +85,11 @@ async function main() {
     // analyze the data
     let matchingRefresh; // this points to the refresh that caused this request
     let guidIndexMatch; // this points to guid (and therefore entity) from the refresh that caused this request
+    let entities = [];
     if (action === "retrieve") {
       const reqContextGuids = [];
       for (const key in params.params) {
+        entities.push(key);
         reqContextGuids.push(params.params[key].guid);
       }
       /**
@@ -127,7 +129,7 @@ async function main() {
         return refresh.guids.find((g, index) => {
           return reqContextGuids.find((rcg) => {
             if (g.substring(0, 5) === rcg.substring(0, 5)) {
-              guidIndexMatch = index;
+              guidIndexMatch = index; // this might be more than one guid
               return true;
             }
             return false;
@@ -141,10 +143,11 @@ async function main() {
       action: action,
       queryId: params.queryId,
       source: "TBD",
+      params: entities,
       trigger: matchingRefresh
         ? {
             id: matchingRefresh.id,
-            entity: matchingRefresh.entities[guidIndexMatch],
+            entity: matchingRefresh.entities[guidIndexMatch], // this might be more than one guid
           }
         : undefined,
     };
@@ -166,15 +169,16 @@ async function main() {
             req.analysis.trigger.entity === entity
           );
         })
-        .map((dsc) => dsc.analysis.queryId);
+        .map((dsc) => dsc.analysis);
       const downstreamCallsMap = downstreamCalls.reduce((total, current) => {
         // console.log(total);
-        const existing = total.find((item) => item.id === current);
+        const existing = total.find((item) => item.id === current.queryId);
         if (existing) {
           existing.count += 1;
         } else {
           total.push({
-            id: current,
+            id: current.queryId,
+            params: current.params,
             count: 1,
           });
         }
@@ -184,7 +188,6 @@ async function main() {
         requestId: refresh.id,
         entity: entity,
         downStreamCallsCount: downstreamCalls.length,
-        // downstreamCalls: downstreamCalls,
         downstreamCalls: downstreamCallsMap,
       });
     });
@@ -216,5 +219,6 @@ main();
 /**
  * i have a mysetery query: nRpEXDoBMUaf2RMl3xb1pg
  * - seems to be the result of a refreshed SubSection, but there's no instructions to do so..
+ * - showbycondition custom widget likely the refresh culprit 
  *
  *  */
