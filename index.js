@@ -17,7 +17,7 @@ async function main() {
   //     tree = await getPageDataStructure(
   //       process.env.MENDIX_TOKEN,
   //       process.env.APP_ID,
-  //       "MatrixModule.Step2_Questionnaire_2"
+  //       process.env.PAGE_NAME
   //     );
   //   } catch (e) {
   //     console.log(e);
