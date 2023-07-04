@@ -11,16 +11,17 @@ require("dotenv").config();
 // console.log(process.env.PAT);
 
 async function main() {
-    let tree = {}
-  try {
-    tree = await getPageDataStructure(
-      process.env.MENDIX_TOKEN,
-      process.env.APP_ID,
-      "MatrixModule.Step2_Questionnaire_2"
-    );
-  } catch (e) {
-    console.log(e);
-  }
+  let guidEntityMap = {};
+  let tree = {};
+  //   try {
+  //     tree = await getPageDataStructure(
+  //       process.env.MENDIX_TOKEN,
+  //       process.env.APP_ID,
+  //       "MatrixModule.Step2_Questionnaire_2"
+  //     );
+  //   } catch (e) {
+  //     console.log(e);
+  //   }
   /**
    * 1. Capture all the requests from the HAR file
    */
@@ -56,6 +57,10 @@ async function main() {
     const responseText = req.response.content.text;
     const { changes, commits, instructions, objects } =
       JSON.parse(responseText);
+    const responseObjectIds = objects.map(obj => obj.guid)
+    const responseObjectClassnames = objects.map(obj => obj.objectType)
+    catalogGuidEntity(responseObjectIds, responseObjectClassnames, guidEntityMap)
+
     // check to see if there are refresh instructions...
     const refreshInClient =
       instructions &&
@@ -64,13 +69,17 @@ async function main() {
       });
     if (refreshInClient) {
       // ... if so, catalog it
+      const objectIds = instructions.find((instr) => {
+        return instr.type == "refresh_object_list";
+      }).args.ObjectIds;
       refreshes.push({
         id: index,
         entities: refreshInClient.args.classnames,
-        guids: instructions.find((instr) => {
-          return instr.type == "refresh_object_list";
-        }).args.ObjectIds,
+        guids: objectIds,
       });
+      // ... and attempt to update the guid-entity mapping
+      // (classNames[], objects[]) => void
+      catalogGuidEntity(objectIds, refreshInClient.args.classnames, guidEntityMap)
     }
     ret.response = {
       changes,
@@ -92,38 +101,6 @@ async function main() {
         entities.push(key);
         reqContextGuids.push(params.params[key].guid);
       }
-      /**
-         * @TODO - there's a bug here where downstream calls are being tied to the wrong refresh.. need to think about this one.
-         * - how do we tell which to tie it to? Maybe from the model sdk?
-         * 
-         * e.g. this request is counted for ROW and not for QUESTIONMAIN
-         * "request": {
-                "action": "retrieve",
-                "params": {
-                    "queryId": "yaxM3R8iZU2mJFD91lgTfw",
-                    "params": {
-                        "QuestionMain": {
-                            "guid": "75435293790178333"
-                        },
-                        "Row": {
-                            "guid": "74027919018446481"
-                        }
-                    },
-                    "options": {}
-                },
-                "queryId": "yaxM3R8iZU2mJFD91lgTfw"
-            },
-            "analysis": {
-                "id": 20,
-                "action": "retrieve",
-                "queryId": "yaxM3R8iZU2mJFD91lgTfw",
-                "source": "TBD",
-                "trigger": {
-                    "id": 0,
-                    "entity": "MatrixModule.Row"
-                }
-            }
-         */
       // find last so that not all requests get linked to the first refresh
       matchingRefresh = refreshes.findLast((refresh) => {
         return refresh.guids.find((g, index) => {
@@ -143,7 +120,7 @@ async function main() {
       action: action,
       queryId: params.queryId,
       source: "TBD",
-      params: entities,
+      params: getFriendlyParamArray(params, guidEntityMap),
       trigger: matchingRefresh
         ? {
             id: matchingRefresh.id,
@@ -176,6 +153,7 @@ async function main() {
         if (existing) {
           existing.count += 1;
         } else {
+          // const paramArray = getFriendlyParamArray(current, guidEntityMap);
           total.push({
             id: current.queryId,
             params: current.params,
@@ -200,6 +178,7 @@ async function main() {
     "./out.json",
     JSON.stringify({
       summary: analysis,
+      entityMap: guidEntityMap,
       tree: tree,
       data: mxReqLog,
     })
@@ -214,11 +193,46 @@ async function main() {
 
 main();
 
+function getFriendlyParamArray(current, guidEntityMap) {
+  // console.log(current);
+  const paramArray = [];
+  for (const key in current.params) {
+    const objectGuidPrefix = current.params[key].guid.substring(0, 5);
+    for (const e in guidEntityMap) {
+      if (guidEntityMap[e].indexOf(objectGuidPrefix) > -1) {
+        paramArray.push({
+          parameterName: key,
+          parameterGuid: current.params[key].guid,
+          entityType: e,
+        });
+        break;
+      }
+    }
+  }
+  return paramArray;
+}
+
+function catalogGuidEntity(objectIds, classnames, mapObject) {
+    classnames.forEach((entity, index) => {
+        const guidPrefix = objectIds[index].substring(0, 5);
+
+        // console.log(guidEntityMap);
+        // console.log(`current: {${entity}: ${guidPrefix}}`)
+
+        if (!mapObject[entity]) {
+            mapObject[entity] = [guidPrefix];
+        } else if (mapObject[entity].indexOf(guidPrefix) > -1) {
+          // do nothing
+        } else {
+            mapObject[entity].push(guidPrefix);
+        }
+      });
+}
 // console.log(mxReqLog.filter(req => !req.analysis.trigger))
 
 /**
  * i have a mysetery query: nRpEXDoBMUaf2RMl3xb1pg
  * - seems to be the result of a refreshed SubSection, but there's no instructions to do so..
- * - showbycondition custom widget likely the refresh culprit 
+ * - showbycondition custom widget likely the refresh culprit
  *
  *  */
