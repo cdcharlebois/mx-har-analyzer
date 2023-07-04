@@ -171,7 +171,22 @@ async function main() {
     });
   });
   // console.log(entityRefreshes);
+  /**
+   * Recommendations
+   * ---
+   * - given the entities in the guidEntityMap, count the number of requests with those entities in params
+   */
+  let recommendations = [];
+  for (const key in guidEntityMap) {
+    const resultingRequests = mxReqLog.filter(req => !!req.analysis.params.find(p => p.entityType === key)).length
+    recommendations.push({
+        entity: key,
+        resultingRequests: resultingRequests,
+        text: `removing the ${key} refresh will potentially result in ${resultingRequests} fewer xas requests` 
+    })
+  }
   const analysis = {
+    recommendations,
     refreshes: entityRefreshes,
   };
   fs.writeFileSync(
