@@ -14,7 +14,7 @@ interface PageDataElement {
   dataSource?: any;
   friendlyDataSourceType: string;
   friendlyDataSourceText?: string;
-  _ds?: any
+  _ds?: any;
   children?: PageDataElement[];
   childrenCount?: number;
 }
@@ -50,7 +50,7 @@ function buildPageTreeNodesFrom(
     return {
       ...rest,
       children: children.map((child) => buildPageTreeNodesFrom(child, all)),
-      childrenCount: children.length
+      childrenCount: children.length,
     };
   }
 }
@@ -70,13 +70,15 @@ function getReadablePageDataElementFromStructure(
       break;
     case "Pages$DataViewSource":
     case "Pages$AssociationSource":
-        // read datatSource.entityRed.steps[] OR ...entityRef.entity
-        if (dataSource.entityRef.$Type === "DomainModels$DirectEntityRef"){
-            friendlyDataSourceText = `Context: ${dataSource.entityRef.entity}`
-        } else {
-            friendlyDataSourceText = `Association: ${dataSource.entityRef.steps.map((step: any) => step.association).join('/')}`;
-        }
-    //   _ds = dataSource;
+      // read datatSource.entityRed.steps[] OR ...entityRef.entity
+      if (dataSource.entityRef.$Type === "DomainModels$DirectEntityRef") {
+        friendlyDataSourceText = `Context: ${dataSource.entityRef.entity}`;
+      } else {
+        friendlyDataSourceText = `Association: ${dataSource.entityRef.steps
+          .map((step: any) => step.association)
+          .join("/")}`;
+      }
+      //   _ds = dataSource;
       break;
     case "Pages$MicroflowSource":
       friendlyDataSourceText = `Microflow: ${dataSource.microflowSettings.microflow}`;
@@ -87,7 +89,12 @@ function getReadablePageDataElementFromStructure(
   return { name, $Type, $ID, friendlyDataSourceType, friendlyDataSourceText };
 }
 
-export async function getPageDataStructure(token: string, appid: string, pageName: string) {
+export async function getPageDataStructure(
+  token: string,
+  appid: string,
+  branch: string,
+  pageName: string
+) {
   // console.log("hello there");
   setPlatformConfig({
     mendixToken: token,
@@ -96,7 +103,7 @@ export async function getPageDataStructure(token: string, appid: string, pageNam
 
   const app = await client.getApp(appid);
 
-  const workingCopy = await app.createTemporaryWorkingCopy("Release2.0");
+  const workingCopy = await app.createTemporaryWorkingCopy(branch);
   const model = await workingCopy.openModel();
 
   const page = await model.allPages().find((page) => {
@@ -147,10 +154,8 @@ export async function getPageDataStructure(token: string, appid: string, pageNam
   } else {
     console.error("no page found");
     model.closeConnection();
-    throw new Error("no page found")
+    throw new Error("no page found");
   }
-
-  
 }
 
 // main().catch(console.error);

@@ -31,7 +31,7 @@ function buildPageTreeNodesFrom(pde, all) {
         return {
             ...rest,
             children: children.map((child) => buildPageTreeNodesFrom(child, all)),
-            childrenCount: children.length
+            childrenCount: children.length,
         };
     }
 }
@@ -53,7 +53,9 @@ function getReadablePageDataElementFromStructure(structure) {
                 friendlyDataSourceText = `Context: ${dataSource.entityRef.entity}`;
             }
             else {
-                friendlyDataSourceText = `Association: ${dataSource.entityRef.steps.map((step) => step.association).join('/')}`;
+                friendlyDataSourceText = `Association: ${dataSource.entityRef.steps
+                    .map((step) => step.association)
+                    .join("/")}`;
             }
             //   _ds = dataSource;
             break;
@@ -65,14 +67,14 @@ function getReadablePageDataElementFromStructure(structure) {
     }
     return { name, $Type, $ID, friendlyDataSourceType, friendlyDataSourceText };
 }
-async function getPageDataStructure(token, appid, pageName) {
+async function getPageDataStructure(token, appid, branch, pageName) {
     // console.log("hello there");
     (0, mendixplatformsdk_1.setPlatformConfig)({
         mendixToken: token,
     });
     const client = new mendixplatformsdk_1.MendixPlatformClient();
     const app = await client.getApp(appid);
-    const workingCopy = await app.createTemporaryWorkingCopy("Release2.0");
+    const workingCopy = await app.createTemporaryWorkingCopy(branch);
     const model = await workingCopy.openModel();
     const page = await model.allPages().find((page) => {
         return page.qualifiedName === pageName;

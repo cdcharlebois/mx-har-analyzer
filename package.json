@@ -5,7 +5,9 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "tsc && node index.js"
+    "start": "tsc && node index.js both",
+    "analyze": "tsc && node index.js analyze",
+    "tree": "tsc && node index.js tree"
   },
   "author": "Conner Charlebois",
   "license": "ISC",
