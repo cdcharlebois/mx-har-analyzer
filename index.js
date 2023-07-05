@@ -4,11 +4,10 @@
  */
 const fs = require("fs");
 const path = process.argv[2];
-const har = require(path);
+// const har = require(path);
+const har = JSON.parse(fs.readFileSync(path));
 const { getPageDataStructure } = require("./modelsdk");
-// const { config } = require('dotenv');
 require("dotenv").config();
-// console.log(process.env.PAT);
 
 async function main() {
   let guidEntityMap = {};
