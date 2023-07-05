@@ -32,9 +32,9 @@ npm run analyze <path/to/har/file>
 npm run tree
 ```
 
-`start`: run both `analyze` and `tree` and generate combined output.
+`start`: run both `analyze` and `tree` and generate combined output. For this to run, you must provide all the inputs to both commands.
 ```
-npm run start
+npm run start <path/to/har/file>
 ```
 
 
