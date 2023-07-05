@@ -14,6 +14,9 @@ installation
 
 commands
 ---
+
+> All commands generate output in a file called `out.json` in the repository root.
+
 `analyze`: given a .har file, analyze the traffic and determine the sources of each call. For this to run, you must provide the path to the .har file in the command line invocation:
 ```sh
 npm run analyze <path/to/har/file>
@@ -27,6 +30,11 @@ npm run analyze <path/to/har/file>
 
 ```bash
 npm run tree
+```
+
+`start`: run both `analyze` and `tree` and generate combined output.
+```
+npm run start
 ```
 
 
